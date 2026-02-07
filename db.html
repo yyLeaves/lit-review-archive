@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperDB Pro - Deep Content Search</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .detail-animation { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // 搜索助手函数
+        const deepSearch = (data, keywords) => {
+            if (!keywords || keywords.length === 0) return true;
+            const stringifiedData = JSON.stringify(data).toLowerCase();
+            return keywords.every(kw => stringifiedData.includes(kw.trim().toLowerCase()));
+        };
+
+        const RecursiveTable = ({ data }) => {
+            if (data === null || data === undefined) return <span className="text-slate-500">null</span>;
+            if (typeof data !== 'object') {
+                const str = String(data);
+                return str.startsWith('http') ? 
+                    <a href={str} target="_blank" className="text-blue-400 hover:text-blue-300 underline break-all">{str}</a> : 
+                    <span className="break-all">{str}</span>;
+            }
+            return (
+                <div className="overflow-x-auto border border-slate-800 rounded-lg">
+                    <table className="w-full border-collapse text-sm">
+                        <tbody>
+                            {Object.entries(data).map(([key, value]) => (
+                                <tr key={key} className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30">
+                                    <td className="p-3 w-1/4 font-mono text-blue-300 bg-slate-900/50 align-top border-r border-slate-800 capitalize">
+                                        {key.replace(/_/g, ' ')}
+                                    </td>
+                                    <td className="p-3 w-3/4"><RecursiveTable data={value} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // 注意：这里的初始空数组在导出时会被动态替换为实际数据
+            const [papers, setPapers] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(-1);
+            const [isLoading, setIsLoading] = useState(false);
+
+            const [searchTitle, setSearchTitle] = useState("");
+            const [searchKeywords, setSearchKeywords] = useState("");
+            const [filterYear, setFilterYear] = useState("");
+            const [sortBy, setSortBy] = useState("newest");
+
+            useEffect(() => { window.scrollTo(0, 0); }, [currentIndex]);
+
+            const handleFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setIsLoading(true);
+                try {
+                    const text = await file.text();
+                    const lines = text.split('\n').filter(l => l.trim());
+                    const data = lines.map(l => {
+                        try { return JSON.parse(l); } catch (err) { return null; }
+                    }).filter(d => d !== null);
+                    setPapers(data);
+                } catch (err) { alert("Error reading file."); }
+                setIsLoading(false);
+            };
+
+            const filteredAndSortedPapers = useMemo(() => {
+                const keywordArray = searchKeywords.split(',').map(k => k.trim()).filter(k => k !== "");
+                let result = papers.filter(p => {
+                    const matchTitle = (p.title || "").toLowerCase().includes(searchTitle.toLowerCase());
+                    const matchYear = filterYear === "" || String(p.year) === filterYear;
+                    const matchDeep = deepSearch(p, keywordArray);
+                    return matchTitle && matchYear && matchDeep;
+                });
+                return result.sort((a, b) => {
+                    if (sortBy === "newest") return (b.year || 0) - (a.year || 0);
+                    if (sortBy === "oldest") return (a.year || 0) - (b.year || 0);
+                    if (sortBy === "cite-high") return (b.citationCount || 0) - (a.citationCount || 0);
+                    if (sortBy === "alpha") return (a.title || "").localeCompare(b.title || "");
+                    return 0;
+                });
+            }, [papers, searchTitle, searchKeywords, filterYear, sortBy]);
+
+            // --- 核心修改：导出 HTML 函数 ---
+            const handleExportHTML = () => {
+                if (filteredAndSortedPapers.length === 0) {
+                    alert("No papers to export.");
+                    return;
+                }
+
+                const dataJSON = JSON.stringify(filteredAndSortedPapers);
+                const currentScript = document.querySelector('script[type="text/babel"]').innerHTML;
+                
+                // 构造导出模版：将当前 papers 状态替换为当前过滤后的数据
+                const injectedScript = currentScript.replace(
+                    /const \[papers, setPapers\] = useState\(\[\]\);/,
+                    `const [papers, setPapers] = useState(${dataJSON});`
+                );
+
+                const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exported PaperDB - ${new Date().toLocaleDateString()}</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        ${document.querySelector('style').innerHTML}
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen font-sans">
+    <div id="root"></div>
+    <script type="text/babel">
+        ${injectedScript}
+    <\/script>
+</body>
+</html>`;
+
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `PaperDB_Export_${searchTitle.trim() || 'Data'}.html`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const uniqueYears = useMemo(() => {
+                const years = [...new Set(papers.map(p => p.year))].filter(Boolean);
+                return years.sort((a, b) => b - a);
+            }, [papers]);
+
+            if (papers.length === 0) {
+                return (
+                    <div className="flex items-center justify-center h-screen bg-slate-950">
+                        <div className="text-center p-12 border border-slate-800 rounded-3xl bg-slate-900/50 shadow-2xl">
+                            <h1 className="text-4xl font-black mb-2 text-white italic">PAPER_DB <span className="text-blue-500 not-italic text-2xl">PRO</span></h1>
+                            <p className="text-slate-400 mb-8 uppercase tracking-widest text-xs">Deep Content Analysis Engine</p>
+                            <input type="file" id="upload" className="hidden" onChange={handleFileUpload} accept=".jsonl,.json" />
+                            <label htmlFor="upload" className="bg-blue-600 px-10 py-4 rounded-xl cursor-pointer hover:bg-blue-500 font-bold transition-all inline-block shadow-lg">
+                                {isLoading ? "Processing..." : "Upload JSONL"}
+                            </label>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (currentIndex >= 0) {
+                const paper = filteredAndSortedPapers[currentIndex];
+                return (
+                    <div className="p-4 md:p-8 max-w-6xl mx-auto detail-animation">
+                        <div className="flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-2xl sticky top-4 z-20 border border-slate-700 shadow-xl">
+                            <button onClick={() => setCurrentIndex(-1)} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold">← Back</button>
+                            <div className="flex items-center gap-4">
+                                <button disabled={currentIndex === 0} onClick={() => setCurrentIndex(i => i - 1)} className="p-2 bg-slate-800 rounded disabled:opacity-20">◀</button>
+                                <span className="font-mono text-sm">{currentIndex + 1} / {filteredAndSortedPapers.length}</span>
+                                <button disabled={currentIndex === filteredAndSortedPapers.length - 1} onClick={() => setCurrentIndex(i => i + 1)} className="p-2 bg-slate-800 rounded disabled:opacity-20">▶</button>
+                            </div>
+                        </div>
+                        <div className="bg-slate-900 rounded-3xl p-8 border border-slate-800">
+                            <h2 className="text-3xl font-black text-white mb-6">{paper.title}</h2>
+                            <RecursiveTable data={paper} />
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-6 md:p-10 max-w-7xl mx-auto">
+                    <header className="flex justify-between items-end mb-8">
+                        <div>
+                            <h1 className="text-4xl font-black text-white italic tracking-tighter">PAPER_DB</h1>
+                            <p className="text-slate-500 text-sm font-bold">Total: {filteredAndSortedPapers.length} Papers</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <button onClick={handleExportHTML} className="px-4 py-1.5 bg-green-600/20 hover:bg-green-600 border border-green-500/50 text-green-400 hover:text-white text-[10px] font-black uppercase rounded-lg transition-all active:scale-95">
+                                Export Static HTML
+                            </button>
+                            <button onClick={() => setPapers([])} className="text-red-500 text-[10px] font-black uppercase hover:underline">
+                                Clear Data
+                            </button>
+                        </div>
+                    </header>
+
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shadow-xl">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Title Search</label>
+                            <input value={searchTitle} onChange={e => setSearchTitle(e.target.value)} placeholder="Title contains..." className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 outline-none"/>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Keywords</label>
+                            <input value={searchKeywords} onChange={e => setSearchKeywords(e.target.value)} placeholder="e.g. LLM, Attention" className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 outline-none"/>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Year</label>
+                            <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none">
+                                <option value="">All Years</option>
+                                {uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sort</label>
+                            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none text-blue-400 font-bold">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="cite-high">Most Cited</option>
+                                <option value="alpha">A-Z</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4">
+                        {filteredAndSortedPapers.map((p, idx) => (
+                            <div key={idx} onClick={() => setCurrentIndex(idx)} className="bg-slate-900 border border-slate-800 p-5 rounded-xl hover:border-blue-600 cursor-pointer transition-all group flex flex-col md:flex-row justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded uppercase">{p.venue || "Other"}</span>
+                                        <span className="text-[10px] font-black bg-slate-800 text-slate-400 px-2 py-0.5 rounded">{p.year}</span>
+                                    </div>
+                                    <h3 className="text-lg font-bold group-hover:text-blue-400 transition-colors leading-tight">{p.title}</h3>
+                                </div>
+                                <div className="flex items-center gap-6 md:border-l border-slate-800 md:pl-6 shrink-0">
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Citations</p>
+                                        <p className="text-xl font-black text-white">{p.citationCount || 0}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Influential</p>
+                                        <p className="text-xl font-black text-blue-500">{p.influentialCitationCount || 0}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

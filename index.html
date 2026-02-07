@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperDB Hub - Knowledge Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        
+        .neon-card {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .neon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        .neon-card::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(45deg, #1e293b, #3b82f6, #1e293b);
+            z-index: -1;
+            border-radius: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .neon-card:hover::after { opacity: 0.5; }
+    </style>
+</head>
+<body class="text-slate-200">
+
+    <div class="flex min-h-screen">
+        <aside class="w-64 border-r border-slate-800 bg-slate-950/50 backdrop-blur-xl hidden md:flex flex-col p-6 sticky top-0 h-screen">
+            <div class="mb-10">
+                <h1 class="text-2xl font-black text-white italic tracking-tighter">PAPER_DB <span class="text-blue-500 not-italic">HUB</span></h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">Resource Index</p>
+            </div>
+
+            <nav class="space-y-1 flex-1">
+                <a href="db.html" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600/10 text-blue-400 border border-blue-500/20 font-bold text-sm">
+                    <span>🏠</span> Home Dashboard
+                </a>
+                <a href="search.html" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition-all text-sm">
+                    <span>🔍</span> Deep Search Engine
+                </a>
+                <div class="pt-4 pb-2 px-4 text-[10px] font-black text-slate-600 uppercase">Quick Links</div>
+                <a href="https://arxiv.org" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-900 text-sm">
+                    <span>📄</span> ArXiv Labs
+                </a>
+            </nav>
+
+            <!-- <div class="mt-auto pt-6 border-t border-slate-800">
+                <div class="p-4 bg-slate-900 rounded-xl border border-slate-800">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-2">System Status</p>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-xs font-mono">NODE_01 ONLINE</span>
+                    </div>
+                </div>
+            </div> -->
+        </aside>
+
+        <main class="flex-1 p-6 md:p-12 lg:p-16">
+            <header class="max-w-6xl mx-auto mb-16">
+                <h2 class="text-5xl font-black text-white mb-4 tracking-tight">知识库索引 <br/><span class="text-blue-500">Knowledge Directories</span></h2>
+                <p class="text-slate-400 text-lg max-w-2xl leading-relaxed">
+                    欢迎来到 PaperDB 资源中心。以下是手动维护的主题目录，点击下方卡片进入对应的专题索引页面。
+                </p>
+            </header>
+
+            <div class="max-w-6xl mx-auto">
+                <div class="flex items-center gap-4 mb-8">
+                    <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Active Topics</span>
+                    <div class="h-px flex-1 bg-slate-800"></div>
+                </div>
+
+                <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- <li class="neon-card bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden group">
+                        <a href="topic/llm/index.html" class="block p-8">
+                            <div class="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-600/40 transition-colors">
+                                <span class="text-2xl">🤖</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Large Language Models</h3>
+                            <p class="text-slate-500 text-sm mb-6 leading-relaxed">深度学习、Transformer 架构以及大语言模型的最新进展。</p>
+                            <div class="flex items-center text-blue-500 text-xs font-black uppercase tracking-widest group-hover:gap-2 transition-all">
+                                Open Directory <span>→</span>
+                            </div>
+                        </a>
+                    </li> -->
+
+                    <li class="neon-card bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden group">
+                        <a href="topics/document-segmentation/index.html" class="block p-8">
+                            <div class="w-12 h-12 bg-purple-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-600/40 transition-colors">
+                                <span class="text-2xl">🧠</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Document Segmentation</h3>
+                            <p class="text-slate-500 text-sm mb-6 leading-relaxed"></p>
+                            <div class="flex items-center text-purple-500 text-xs font-black uppercase tracking-widest group-hover:gap-2 transition-all">
+                                Open Directory <span>→</span>
+                            </div>
+                        </a>
+                    </li>
+
+                    <!-- <li class="neon-card bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden group">
+                        <a href="topic/rag/index.html" class="block p-8">
+                            <div class="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:bg-emerald-600/40 transition-colors">
+                                <span class="text-2xl">📚</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">RAG Systems</h3>
+                            <p class="text-slate-500 text-sm mb-6 leading-relaxed">检索增强生成：向量数据库、嵌入模型与优化策略。</p>
+                            <div class="flex items-center text-emerald-500 text-xs font-black uppercase tracking-widest group-hover:gap-2 transition-all">
+                                Open Directory <span>→</span>
+                            </div>
+                        </a>
+                    </li> -->
+
+                    <li class="border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center p-8 hover:border-slate-700 transition-colors group cursor-pointer">
+                        <div class="text-center">
+                            <span class="text-slate-600 text-3xl mb-2 block group-hover:scale-110 transition-transform">+</span>
+                            <p class="text-slate-600 text-xs font-bold uppercase tracking-widest">Add New Topic</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>
